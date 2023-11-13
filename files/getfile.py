@@ -46,6 +46,14 @@ def generate_error_html_response(status_code: int, msg: str) -> str:
 
 def lambda_handler(event, context):
 
+    # (try to) Log request
+    try:
+        ip = event['requestContext']['identity']['sourceIp'] 
+        ua = event['requestContext']['identity']['userAgent'][:128]
+        print(f"{ip}, {ua}")
+    except Excetion as e:
+        print(f"Error reading requestor IP/UA: [{type(e).__name__}] exception - {str(e)}")
+
     # Check if environment variables set
     try:
         environment_check()
@@ -71,6 +79,7 @@ def lambda_handler(event, context):
         print(f"Error reading url path: [{type(e).__name__}] exception - {str(e)}")
         return(generate_error_html_response(400, "Bad request, please check URL"))
 
+
     # Try to get the s3 object key/path that matches the input
     try:
         object_key = get_object_key_from_dynamodb(param_id)
@@ -90,6 +99,8 @@ def lambda_handler(event, context):
         return(generate_error_html_response(500, "Server Error, contact system administrator"))
 
     # Return a redirect to the presigned URL
+    print(f"Finished request for:")
+    print(f"param_id={param_id}, object_key={object_key}")
     return {
         "statusCode" : 301,
         'headers':{"Location": f"{presigned_url}"},
